@@ -1,0 +1,23 @@
+resources:
+  pipelines:
+    bls_pr_medallion:
+      name: BLS PR Medallion Pipeline
+      catalog: ${var.catalog}
+      schema: ${var.bronze_schema}
+
+      root_path: ../src/pipelines/bls_pr_medallion
+      libraries:
+        - glob:
+            include: ../src/pipelines/bls_pr_medallion/transformations/**
+
+      serverless: true
+      photon: true
+      channel: CURRENT
+      continuous: false
+
+      configuration:
+        pr.source_dir: /Volumes/${var.catalog}/${var.bronze_schema}/${var.raw_volume}
+        pr.catalog: ${var.catalog}
+        pr.bronze_schema: ${var.bronze_schema}
+        pr.silver_schema: ${var.silver_schema}
+        pr.gold_schema: ${var.gold_schema}

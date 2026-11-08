@@ -1,0 +1,27 @@
+resources:
+  jobs:
+    bls_pr_daily:
+      name: BLS PR Daily Sync and Refresh
+      max_concurrent_runs: 1
+
+      tasks:
+        - task_key: sync_raw_files
+          notebook_task:
+            notebook_path: ../src/notebooks/bls_pr_incremental_volume_ingestion.py
+          max_retries: 1
+          min_retry_interval_millis: 600000
+
+        - task_key: refresh_pipeline
+          depends_on:
+            - task_key: sync_raw_files
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.bls_pr_medallion.id}
+
+      schedule:
+        quartz_cron_expression: "0 0 7 * * ?"
+        timezone_id: America/New_York
+        pause_status: PAUSED
+
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}

@@ -1,0 +1,39 @@
+bundle:
+  name: bls_pr
+
+include:
+  - resources/*.yml
+
+# Single source of truth for catalog, schema and raw volume names.
+# - The pipeline resource receives them as pr.* configuration (resolved per target).
+# - Both notebooks read the `default:` values directly from this file (no job parameters),
+#   so target overrides below are NOT seen by the notebooks.
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the bronze/silver/gold schemas
+    default: productivity
+  bronze_schema:
+    description: Schema for raw volumes and bronze tables
+    default: bronze_pr
+  silver_schema:
+    description: Schema for silver tables
+    default: silver_pr
+  gold_schema:
+    description: Schema for gold star-schema tables
+    default: gold_pr
+  raw_volume:
+    description: Volume that mirrors the source files
+    default: pr_raw
+  notification_email:
+    description: Address that receives job failure alerts
+    default: ${workspace.current_user.userName}
+
+targets:
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: productivity
+      notification_email: zaidrahman13@live.com
