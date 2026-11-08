@@ -14,8 +14,10 @@ resources:
         - task_key: refresh_pipeline
           depends_on:
             - task_key: sync_raw_files
+          run_if: ALL_SUCCESS
           pipeline_task:
             pipeline_id: ${resources.pipelines.bls_pr_medallion.id}
+            full_refresh: false
 
       schedule:
         quartz_cron_expression: "0 0 7 * * ?"

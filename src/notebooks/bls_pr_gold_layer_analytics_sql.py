@@ -6,14 +6,12 @@
 # DBTITLE 1,Setup: use the gold schema from databricks.yml
 import yaml
 
-# Catalog/schema come from the bundle variable defaults in <repo>/databricks.yml
 with open('../../databricks.yml') as f:
     bundle_vars = yaml.safe_load(f)['variables']
 
 CATALOG = bundle_vars['catalog']['default']
 GOLD_SCHEMA = bundle_vars['gold_schema']['default']
 
-# All queries below use unqualified gold table names
 spark.sql(f'USE `{CATALOG}`.`{GOLD_SCHEMA}`')
 print(f'Using {CATALOG}.{GOLD_SCHEMA}')
 
@@ -21,7 +19,6 @@ print(f'Using {CATALOG}.{GOLD_SCHEMA}')
 
 # DBTITLE 1,Q1: US population mean and std dev, 2013-2018
 # MAGIC %sql
-# MAGIC -- Sample std dev (n-1) is the usual choice; population std dev (n) shown for reference
 # MAGIC SELECT
 # MAGIC   count(*)                     AS n_years,
 # MAGIC   min(d.year)                  AS first_year,
@@ -41,10 +38,8 @@ print(f'Using {CATALOG}.{GOLD_SCHEMA}')
 
 # DBTITLE 1,Q2: Year with largest summed quarterly value per series
 # MAGIC %sql
-# MAGIC -- Sum of Q01-Q04 values per series and year, then the top year per series.
-# MAGIC -- RANK keeps ties (is_tie = true); quarters_in_year < 4 flags partial years (e.g. the current year).
 # MAGIC WITH yearly AS (
-# MAGIC   SELECT series_id, year, sum(value) AS total_value, count(*) AS quarters_in_year
+# MAGIC   SELECT series_id, year, sum(CAST(value AS DECIMAL(18,3))) AS total_value, count(*) AS quarters_in_year
 # MAGIC   FROM fact_productivity_quarterly
 # MAGIC   WHERE value IS NOT NULL
 # MAGIC   GROUP BY series_id, year
@@ -70,8 +65,6 @@ print(f'Using {CATALOG}.{GOLD_SCHEMA}')
 
 # DBTITLE 1,Q3: PRS30006032 Q01 value per year, joined with population
 # MAGIC %sql
-# MAGIC -- Series PRS30006032, period Q01 (quarter 1 of the quarterly fact).
-# MAGIC -- Population is annual, so it joins on the year; LEFT JOIN keeps years without population (NULL).
 # MAGIC SELECT o.series_id,
 # MAGIC        'Q01'        AS period,
 # MAGIC        o.year,

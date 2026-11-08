@@ -96,7 +96,6 @@ class LinkParser(HTMLParser):
 
 
 def list_remote_files(session, base_url) -> dict:
-    '''Return {file_name: url} for every file directly inside base_url (skips parent link and sub-dirs).'''
     r = session.get(base_url, timeout=config.request_timeout_seconds)
     r.raise_for_status()
     parser = LinkParser()
@@ -120,20 +119,16 @@ def head_metadata(session, url) -> dict:
         r.raise_for_status()
         headers = r.headers
     except requests.RequestException:
-        headers = {}  # HEAD not supported -> no fingerprint, rely on content hash
+        headers = {}
     lm_hdr = headers.get('Last-Modified')
     cl_hdr = headers.get('Content-Length')
     lm = parsedate_to_datetime(lm_hdr).astimezone(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ') if lm_hdr else None
-    # Content-Length of a compressed response doesn't match the decoded bytes, so ignore it then
     cl = int(cl_hdr) if cl_hdr and not headers.get('Content-Encoding') else None
-    # ETag is not used: BLS is load-balanced and ETags can differ per server.
-    # No usable headers (e.g. dynamic API responses) -> fingerprint None: always download and compare SHA-256.
     fp = f'{lm}|{cl}' if (lm or cl is not None) else None
     return {'source_last_modified': lm, 'content_length': cl, 'source_fingerprint': fp}
 
 
 def download_to_local(session, url):
-    '''Stream to a local temp file while hashing. Returns (local_path, sha256, size).'''
     h, size = hashlib.sha256(), 0
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         with session.get(url, stream=True, timeout=config.download_timeout_seconds) as r:
@@ -146,13 +141,11 @@ def download_to_local(session, url):
 
 
 def atomic_copy(src_path, dest_path):
-    '''Copy to a temporary .partial file next to the destination, then rename over the real name.'''
     partial = os.path.join(os.path.dirname(dest_path), f'.{os.path.basename(dest_path)}.{uuid.uuid4().hex}.partial')
     shutil.copyfile(src_path, partial)
     try:
         os.replace(partial, dest_path)
     except OSError:
-        # Fallback for filesystems that don't allow rename-over-existing
         if os.path.exists(dest_path):
             os.remove(dest_path)
         os.rename(partial, dest_path)
